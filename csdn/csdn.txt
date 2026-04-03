@@ -1,0 +1,51 @@
+// ==UserScript==
+// @name         CSDN 免关注阅读全文
+// @namespace    http://tampermonkey.net/
+// @version      1.5
+// @description  自动移除 CSDN 的“关注博主”遮挡层和模糊效果
+// @author       You
+// @match        https://*.csdn.net/*
+// @grant        none
+// @run-at       document-end
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    function removeCsdnBlockers() {
+        // 1. 移除遮挡按钮
+        const blockers = document.querySelectorAll('.btn-readmore, .hide-article-box, .fans_read_more');
+        blockers.forEach(el => el.style.display = 'none');
+
+        // 2. 移除文章模糊和高度限制
+        const contents = document.querySelectorAll('.article_content, .blog-content-body, .content-view, [id^="content_views"]');
+        contents.forEach(el => {
+            el.style.filter = 'none';
+            el.style.webkitFilter = 'none';
+            el.style.height = 'auto';
+            el.style.maxHeight = 'none';
+            el.style.overflow = 'visible';
+        });
+
+        // 3. 防止 CSDN 的 JS 再次把遮挡层加回来 (定时检查)
+        // CSDN 有时会动态插入节点，我们需要持续监控
+        const observer = new MutationObserver(() => {
+            blockers.forEach(el => {
+                if(el.offsetParent !== null) { // 如果元素可见
+                    el.style.display = 'none';
+                }
+            });
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // 页面加载完成后执行，并延迟执行一次以防动态加载
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', removeCsdnBlockers);
+    } else {
+        removeCsdnBlockers();
+    }
+    setTimeout(removeCsdnBlockers, 1000);
+    setTimeout(removeCsdnBlockers, 3000);
+})();
